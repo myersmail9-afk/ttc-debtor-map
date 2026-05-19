@@ -1,0 +1,2164 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<title>TTC · Debtor Map</title>
+
+<link rel="icon" type="image/png" href="logo.png">
+
+<style>/* required styles */
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	}
+.leaflet-container {
+	overflow: hidden;
+	}
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
+	  -webkit-user-drag: none;
+	}
+/* Prevents IE11 from highlighting tiles in blue */
+.leaflet-tile::selection {
+	background: transparent;
+}
+/* Safari renders non-retina tile on retina better with this, but Chrome is worse */
+.leaflet-safari .leaflet-tile {
+	image-rendering: -webkit-optimize-contrast;
+	}
+/* hack that prevents hw layers "stretching" when loading new tiles */
+.leaflet-safari .leaflet-tile-container {
+	width: 1600px;
+	height: 1600px;
+	-webkit-transform-origin: 0 0;
+	}
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	display: block;
+	}
+/* .leaflet-container svg: reset svg max-width decleration shipped in Joomla! (joomla.org) 3.x */
+/* .leaflet-container img: map is broken in FF if you have max-width: 100% on tiles */
+.leaflet-container .leaflet-overlay-pane svg {
+	max-width: none !important;
+	max-height: none !important;
+	}
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+	max-width: none !important;
+	max-height: none !important;
+	width: auto;
+	padding: 0;
+	}
+
+.leaflet-container img.leaflet-tile {
+	/* See: https://bugs.chromium.org/p/chromium/issues/detail?id=600120 */
+	mix-blend-mode: plus-lighter;
+}
+
+.leaflet-container.leaflet-touch-zoom {
+	-ms-touch-action: pan-x pan-y;
+	touch-action: pan-x pan-y;
+	}
+.leaflet-container.leaflet-touch-drag {
+	-ms-touch-action: pinch-zoom;
+	/* Fallback for FF which doesn't support pinch-zoom */
+	touch-action: none;
+	touch-action: pinch-zoom;
+}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom {
+	-ms-touch-action: none;
+	touch-action: none;
+}
+.leaflet-container {
+	-webkit-tap-highlight-color: transparent;
+}
+.leaflet-container a {
+	-webkit-tap-highlight-color: rgba(51, 181, 229, 0.4);
+}
+.leaflet-tile {
+	filter: inherit;
+	visibility: hidden;
+	}
+.leaflet-tile-loaded {
+	visibility: inherit;
+	}
+.leaflet-zoom-box {
+	width: 0;
+	height: 0;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	z-index: 800;
+	}
+/* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=888319 */
+.leaflet-overlay-pane svg {
+	-moz-user-select: none;
+	}
+
+.leaflet-pane         { z-index: 400; }
+
+.leaflet-tile-pane    { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane  { z-index: 500; }
+.leaflet-marker-pane  { z-index: 600; }
+.leaflet-tooltip-pane   { z-index: 650; }
+.leaflet-popup-pane   { z-index: 700; }
+
+.leaflet-map-pane canvas { z-index: 100; }
+.leaflet-map-pane svg    { z-index: 200; }
+
+.leaflet-vml-shape {
+	width: 1px;
+	height: 1px;
+	}
+.lvml {
+	behavior: url(#default#VML);
+	display: inline-block;
+	position: absolute;
+	}
+
+/* control positioning */
+
+.leaflet-control {
+	position: relative;
+	z-index: 800;
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+.leaflet-top,
+.leaflet-bottom {
+	position: absolute;
+	z-index: 1000;
+	pointer-events: none;
+	}
+.leaflet-top {
+	top: 0;
+	}
+.leaflet-right {
+	right: 0;
+	}
+.leaflet-bottom {
+	bottom: 0;
+	}
+.leaflet-left {
+	left: 0;
+	}
+.leaflet-control {
+	float: left;
+	clear: both;
+	}
+.leaflet-right .leaflet-control {
+	float: right;
+	}
+.leaflet-top .leaflet-control {
+	margin-top: 10px;
+	}
+.leaflet-bottom .leaflet-control {
+	margin-bottom: 10px;
+	}
+.leaflet-left .leaflet-control {
+	margin-left: 10px;
+	}
+.leaflet-right .leaflet-control {
+	margin-right: 10px;
+	}
+
+/* zoom and fade animations */
+
+.leaflet-fade-anim .leaflet-popup {
+	opacity: 0;
+	-webkit-transition: opacity 0.2s linear;
+	   -moz-transition: opacity 0.2s linear;
+	        transition: opacity 0.2s linear;
+	}
+.leaflet-fade-anim .leaflet-map-pane .leaflet-popup {
+	opacity: 1;
+	}
+.leaflet-zoom-animated {
+	-webkit-transform-origin: 0 0;
+	    -ms-transform-origin: 0 0;
+	        transform-origin: 0 0;
+	}
+svg.leaflet-zoom-animated {
+	will-change: transform;
+}
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+	-webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1);
+	   -moz-transition:    -moz-transform 0.25s cubic-bezier(0,0,0.25,1);
+	        transition:         transform 0.25s cubic-bezier(0,0,0.25,1);
+	}
+.leaflet-zoom-anim .leaflet-tile,
+.leaflet-pan-anim .leaflet-tile {
+	-webkit-transition: none;
+	   -moz-transition: none;
+	        transition: none;
+	}
+
+.leaflet-zoom-anim .leaflet-zoom-hide {
+	visibility: hidden;
+	}
+
+/* cursors */
+
+.leaflet-interactive {
+	cursor: pointer;
+	}
+.leaflet-grab {
+	cursor: -webkit-grab;
+	cursor:    -moz-grab;
+	cursor:         grab;
+	}
+.leaflet-crosshair,
+.leaflet-crosshair .leaflet-interactive {
+	cursor: crosshair;
+	}
+.leaflet-popup-pane,
+.leaflet-control {
+	cursor: auto;
+	}
+.leaflet-dragging .leaflet-grab,
+.leaflet-dragging .leaflet-grab .leaflet-interactive,
+.leaflet-dragging .leaflet-marker-draggable {
+	cursor: move;
+	cursor: -webkit-grabbing;
+	cursor:    -moz-grabbing;
+	cursor:         grabbing;
+	}
+
+/* marker & overlays interactivity */
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-image-layer,
+.leaflet-pane > svg path,
+.leaflet-tile-container {
+	pointer-events: none;
+	}
+
+.leaflet-marker-icon.leaflet-interactive,
+.leaflet-image-layer.leaflet-interactive,
+.leaflet-pane > svg path.leaflet-interactive,
+svg.leaflet-image-layer.leaflet-interactive path {
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+
+/* visual tweaks */
+
+.leaflet-container {
+	background: #ddd;
+	outline-offset: 1px;
+	}
+.leaflet-container a {
+	color: #0078A8;
+	}
+.leaflet-zoom-box {
+	border: 2px dotted #38f;
+	background: rgba(255,255,255,0.5);
+	}
+
+/* general typography */
+.leaflet-container {
+	font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	}
+
+/* general toolbar styles */
+
+.leaflet-bar {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+	border-radius: 4px;
+	}
+.leaflet-bar a {
+	background-color: #fff;
+	border-bottom: 1px solid #ccc;
+	width: 26px;
+	height: 26px;
+	line-height: 26px;
+	display: block;
+	text-align: center;
+	text-decoration: none;
+	color: black;
+	}
+.leaflet-bar a,
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+	background-color: #f4f4f4;
+	}
+.leaflet-bar a:first-child {
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	}
+.leaflet-bar a:last-child {
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom: none;
+	}
+.leaflet-bar a.leaflet-disabled {
+	cursor: default;
+	background-color: #f4f4f4;
+	color: #bbb;
+	}
+
+.leaflet-touch .leaflet-bar a {
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	}
+.leaflet-touch .leaflet-bar a:first-child {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+	}
+.leaflet-touch .leaflet-bar a:last-child {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+	}
+
+/* zoom control */
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+	font: bold 18px 'Lucida Console', Monaco, monospace;
+	text-indent: 1px;
+	}
+
+.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out  {
+	font-size: 22px;
+	}
+
+/* layers control */
+
+.leaflet-control-layers {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	background: #fff;
+	border-radius: 5px;
+	}
+.leaflet-retina .leaflet-touch .leaflet-control-layers .leaflet-control-layers-list,
+.leaflet-control-layers-expanded .leaflet-control-layers-expanded .leaflet-control-layers-list {
+	display: block;
+	position: relative;
+	}
+.leaflet-control-layers-expanded {
+	padding: 6px 10px 6px 6px;
+	color: #333;
+	background: #fff;
+	}
+.leaflet-control-layers-scrollbar {
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-right: 5px;
+	}
+.leaflet-control-layers-selector {
+	margin-top: 2px;
+	position: relative;
+	top: 1px;
+	}
+.leaflet-control-layers label {
+	display: block;
+	font-size: 13px;
+	font-size: 1.08333em;
+	}
+.leaflet-control-layers-separator {
+	height: 0;
+	border-top: 1px solid #ddd;
+	margin: 5px -10px 5px -6px;
+	}
+
+/* Default icon URLs */
+/* attribution and scale controls */
+
+.leaflet-container .leaflet-control-attribution {
+	background: #fff;
+	background: rgba(255, 255, 255, 0.8);
+	margin: 0;
+	}
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+	padding: 0 5px;
+	color: #333;
+	line-height: 1.4;
+	}
+.leaflet-control-attribution a {
+	text-decoration: none;
+	}
+.leaflet-control-attribution a:hover,
+.leaflet-control-attribution a:focus {
+	text-decoration: underline;
+	}
+.leaflet-attribution-flag {
+	display: inline !important;
+	vertical-align: baseline !important;
+	width: 1em;
+	height: 0.6669em;
+	}
+.leaflet-left .leaflet-control-scale {
+	margin-left: 5px;
+	}
+.leaflet-bottom .leaflet-control-scale {
+	margin-bottom: 5px;
+	}
+.leaflet-control-scale-line {
+	border: 2px solid #777;
+	border-top: none;
+	line-height: 1.1;
+	padding: 2px 5px 1px;
+	white-space: nowrap;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.8);
+	text-shadow: 1px 1px #fff;
+	}
+.leaflet-control-scale-line:not(:first-child) {
+	border-top: 2px solid #777;
+	border-bottom: none;
+	margin-top: -2px;
+	}
+.leaflet-control-scale-line:not(:first-child):not(:last-child) {
+	border-bottom: 2px solid #777;
+	}
+
+.leaflet-touch .leaflet-control-attribution,
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	box-shadow: none;
+	}
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	border: 2px solid rgba(0,0,0,0.2);
+	background-clip: padding-box;
+	}
+
+/* popup */
+
+.leaflet-popup {
+	position: absolute;
+	text-align: center;
+	margin-bottom: 20px;
+	}
+.leaflet-popup-content-wrapper {
+	padding: 1px;
+	text-align: left;
+	border-radius: 12px;
+	}
+.leaflet-popup-content {
+	margin: 13px 24px 13px 20px;
+	line-height: 1.3;
+	font-size: 13px;
+	font-size: 1.08333em;
+	min-height: 1px;
+	}
+.leaflet-popup-content p {
+	margin: 17px 0;
+	margin: 1.3em 0;
+	}
+.leaflet-popup-tip-container {
+	width: 40px;
+	height: 20px;
+	position: absolute;
+	left: 50%;
+	margin-top: -1px;
+	margin-left: -20px;
+	overflow: hidden;
+	pointer-events: none;
+	}
+.leaflet-popup-tip {
+	width: 17px;
+	height: 17px;
+	padding: 1px;
+
+	margin: -10px auto 0;
+	pointer-events: auto;
+
+	-webkit-transform: rotate(45deg);
+	   -moz-transform: rotate(45deg);
+	    -ms-transform: rotate(45deg);
+	        transform: rotate(45deg);
+	}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background: white;
+	color: #333;
+	box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+	}
+.leaflet-container a.leaflet-popup-close-button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	border: none;
+	text-align: center;
+	width: 24px;
+	height: 24px;
+	font: 16px/24px Tahoma, Verdana, sans-serif;
+	color: #757575;
+	text-decoration: none;
+	background: transparent;
+	}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+	color: #585858;
+	}
+.leaflet-popup-scrolled {
+	overflow: auto;
+	}
+
+.leaflet-oldie .leaflet-popup-content-wrapper {
+	-ms-zoom: 1;
+	}
+.leaflet-oldie .leaflet-popup-tip {
+	width: 24px;
+	margin: 0 auto;
+
+	-ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)";
+	filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678);
+	}
+
+.leaflet-oldie .leaflet-control-zoom,
+.leaflet-oldie .leaflet-control-layers,
+.leaflet-oldie .leaflet-popup-content-wrapper,
+.leaflet-oldie .leaflet-popup-tip {
+	border: 1px solid #999;
+	}
+
+/* div icon */
+
+.leaflet-div-icon {
+	background: #fff;
+	border: 1px solid #666;
+	}
+
+/* Tooltip */
+/* Base styles for the element that has a tooltip */
+.leaflet-tooltip {
+	position: absolute;
+	padding: 6px;
+	background-color: #fff;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	color: #222;
+	white-space: nowrap;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+	}
+.leaflet-tooltip.leaflet-interactive {
+	cursor: pointer;
+	pointer-events: auto;
+	}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	position: absolute;
+	pointer-events: none;
+	border: 6px solid transparent;
+	background: transparent;
+	content: "";
+	}
+
+/* Directions */
+
+.leaflet-tooltip-bottom {
+	margin-top: 6px;
+}
+.leaflet-tooltip-top {
+	margin-top: -6px;
+}
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-top:before {
+	left: 50%;
+	margin-left: -6px;
+	}
+.leaflet-tooltip-top:before {
+	bottom: 0;
+	margin-bottom: -12px;
+	border-top-color: #fff;
+	}
+.leaflet-tooltip-bottom:before {
+	top: 0;
+	margin-top: -12px;
+	margin-left: -6px;
+	border-bottom-color: #fff;
+	}
+.leaflet-tooltip-left {
+	margin-left: -6px;
+}
+.leaflet-tooltip-right {
+	margin-left: 6px;
+}
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	top: 50%;
+	margin-top: -6px;
+	}
+.leaflet-tooltip-left:before {
+	right: 0;
+	margin-right: -12px;
+	border-left-color: #fff;
+	}
+.leaflet-tooltip-right:before {
+	left: 0;
+	margin-left: -12px;
+	border-right-color: #fff;
+	}
+
+/* Printing */
+
+@media print {
+	/* Prevent printers from removing background-images of controls. */
+	.leaflet-control {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		}
+	}
+</style>
+<style></style>
+<script src="bd2ee634-25f0-4b09-9ecb-1f4f35481ed7"></script>
+
+<style>
+/* =================================================================
+   Total Tree Care — Debtor Map
+   Tokens duplicated inline (no fetch) so the page works offline too.
+   ================================================================= */
+:root {
+  --ttc-orange:      #C9601A;
+  --ttc-orange-dk:   #a14d14;
+  --ttc-green:       #4a6741;
+  --ttc-green-dk:    #2a3a25;
+  --ttc-dark:        #2a3a25;
+  --ttc-gold:        #f0c080;
+  --ttc-sage:        #8aa07f;
+
+  --bg:              #f9f6f2;
+  --bg-alt:          #f4f0ea;
+  --bg-dark:         #2a3a25;
+  --card:            #ffffff;
+
+  --text:            #1a1a1a;
+  --text-muted:      #555555;
+  --text-hint:       #888888;
+  --text-on-dark:    #f9f6f2;
+
+  --border:          rgba(0,0,0,0.12);
+  --border-soft:     rgba(0,0,0,0.07);
+  --border-on-dark:  rgba(255,255,255,0.18);
+
+  --success-bg: #eaf3de; --success-text: #27500A; --success-border: #97C459;
+  --warn-bg:    #faeeda; --warn-text:    #633806; --warn-border:    #EF9F27;
+  --info-bg:    #E6F1FB; --info-text:    #0C447C; --info-border:    #85B7EB;
+  --danger-bg:  #FCEBEB; --danger-text:  #791F1F; --danger-border:  #F09595;
+
+  --font-display: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --r-sm: 4px; --r-md: 8px; --r-lg: 16px; --r-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 32px rgba(42,58,37,0.18);
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Tier semantic mapping — priority tiers use the status palette,
+     keeping TTC orange exclusively for CTAs. */
+  --tier-4-bg: #791F1F; --tier-4-fg: #fff;            /* $3k+   */
+  --tier-3-bg: #C9601A; --tier-3-fg: #fff;            /* $1.5–3k */
+  --tier-2-bg: #f0c080; --tier-2-fg: #3a2e02;         /* $500–1.5k */
+  --tier-1-bg: #97C459; --tier-1-fg: #27500A;         /* <$500  */
+  --tier-paid-bg: #d6d2ca; --tier-paid-fg: #555;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; overscroll-behavior: none; }
+body {
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+}
+
+/* ---------------------------- Header ---------------------------- */
+
+#header {
+  background: var(--ttc-dark);
+  color: var(--text-on-dark);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.18);
+  position: relative;
+  z-index: 600;
+  min-height: 60px;
+}
+#brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+#brand img {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+#brand .title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  color: var(--ttc-gold);
+  text-transform: uppercase;
+}
+#brand .subtitle {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(249,246,242,0.6);
+  margin-top: 1px;
+}
+#brand .stack { display: flex; flex-direction: column; line-height: 1.1; }
+
+#summary {
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+  padding-right: 2px;
+}
+#summary .amount {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+#summary .label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(249,246,242,0.6);
+  margin-top: 2px;
+}
+
+#crew-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border-on-dark);
+  padding: 5px 10px 5px 8px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s var(--ease-out);
+}
+#crew-tag:hover { background: rgba(255,255,255,0.14); }
+#crew-tag .who { color: #fff; }
+#crew-tag .who.empty { color: var(--ttc-gold); font-style: italic; font-weight: 500; }
+#crew-tag .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ttc-gold); box-shadow: 0 0 0 3px rgba(240,192,128,0.18);
+}
+
+/* ---------------------------- Toolbar --------------------------- */
+
+#toolbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border-soft);
+  padding: 8px 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+  z-index: 500;
+}
+
+.view-toggle {
+  display: inline-flex;
+  background: var(--bg-alt);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-pill);
+  padding: 3px;
+  flex-shrink: 0;
+}
+.view-toggle button {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s var(--ease-out);
+}
+.view-toggle button.active {
+  background: var(--ttc-dark);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.view-toggle svg { width: 14px; height: 14px; }
+
+#filters {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  align-items: center;
+  flex: 1;
+  scrollbar-width: none;
+}
+#filters::-webkit-scrollbar { display: none; }
+
+.filter-chip {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  padding: 5px 10px 5px 8px;
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.12s var(--ease-out);
+}
+.filter-chip:hover { border-color: var(--ttc-green); }
+.filter-chip.active {
+  background: var(--ttc-dark);
+  color: #fff;
+  border-color: var(--ttc-dark);
+}
+.filter-chip .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.1);
+  flex-shrink: 0;
+}
+.filter-chip .count {
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(0,0,0,0.06);
+  padding: 1px 5px;
+  border-radius: var(--r-pill);
+  margin-left: 1px;
+}
+.filter-chip.active .count {
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+}
+
+#search-wrap {
+  position: relative;
+  flex-shrink: 1;
+  min-width: 100px;
+  max-width: 200px;
+}
+#search-wrap svg {
+  position: absolute;
+  left: 9px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px;
+  color: var(--text-hint);
+  pointer-events: none;
+}
+#search {
+  width: 100%;
+  padding: 6px 10px 6px 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--card);
+  color: var(--text);
+}
+#search:focus {
+  outline: none;
+  border-color: var(--ttc-green);
+  box-shadow: 0 0 0 3px rgba(74,103,65,0.15);
+}
+
+/* ---------------------------- Stage ---------------------------- */
+
+#stage {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 60px - 49px);
+  overflow: hidden;
+  background: var(--bg);
+}
+#map { position: absolute; inset: 0; }
+#map.is-cream { filter: sepia(0.06) hue-rotate(-8deg) saturate(0.85) brightness(1.03); }
+
+#list-view {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--bg);
+  padding: 12px;
+  display: none;
+  z-index: 800;
+}
+#list-view.visible { display: block; }
+
+.list-card {
+  background: var(--card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-lg);
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  cursor: pointer;
+  transition: box-shadow 0.15s var(--ease-out), transform 0.15s var(--ease-out);
+}
+.list-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.list-card.paid { opacity: 0.62; }
+
+.list-card .tier-badge {
+  flex-shrink: 0;
+  width: 76px;
+  border-radius: var(--r-md);
+  padding: 10px 6px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1;
+}
+.list-card .tier-badge .big { font-size: 19px; letter-spacing: -0.02em; }
+.list-card .tier-badge .small { font-size: 9px; letter-spacing: 0.08em; opacity: 0.75; text-transform: uppercase; margin-top: 4px; font-family: var(--font-body); font-weight: 600; }
+.list-card.paid .tier-badge .big { text-decoration: line-through; }
+
+.list-card .body { flex: 1; min-width: 0; }
+.list-card .name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+  color: var(--text);
+}
+.list-card .addr {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+.list-card .meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.list-card .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  background: var(--bg-alt);
+  color: var(--text-muted);
+}
+.list-card .pill.note { background: var(--warn-bg); color: var(--warn-text); }
+.list-card .pill.approx { background: var(--info-bg); color: var(--info-text); }
+.list-card .pill.paid-pill { background: var(--success-bg); color: var(--success-text); }
+
+#list-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+#list-empty .big {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+/* --------------------------- Markers ---------------------------- */
+
+.ttc-marker {
+  position: relative;
+  font-family: var(--font-display);
+  cursor: pointer;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.28));
+  transition: transform 0.12s var(--ease-out);
+}
+.ttc-marker:hover { transform: translateY(-2px) scale(1.04); z-index: 1000 !important; }
+
+.ttc-marker__chip {
+  background: var(--tier-bg, var(--ttc-dark));
+  color: var(--tier-fg, #fff);
+  border: 2px solid #fff;
+  border-radius: var(--r-pill);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: -0.02em;
+  padding: 4px 9px 3px;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-align: center;
+  min-width: 36px;
+}
+.ttc-marker__tail {
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--tier-bg, var(--ttc-dark));
+  margin: -1px auto 0;
+  filter: drop-shadow(0 1px 0 #fff);
+}
+
+.ttc-marker.tier-4 { --tier-bg: var(--tier-4-bg); --tier-fg: var(--tier-4-fg); }
+.ttc-marker.tier-3 { --tier-bg: var(--tier-3-bg); --tier-fg: var(--tier-3-fg); }
+.ttc-marker.tier-2 { --tier-bg: var(--tier-2-bg); --tier-fg: var(--tier-2-fg); }
+.ttc-marker.tier-1 { --tier-bg: var(--tier-1-bg); --tier-fg: var(--tier-1-fg); }
+.ttc-marker.paid   {
+  --tier-bg: var(--tier-paid-bg); --tier-fg: var(--tier-paid-fg);
+  opacity: 0.7;
+}
+.ttc-marker.paid .ttc-marker__chip { text-decoration: line-through; }
+.ttc-marker.approx .ttc-marker__chip { border-style: dashed; }
+
+/* Dot variant — alternative marker style */
+.ttc-marker.style-dot .ttc-marker__chip {
+  width: 22px; height: 22px;
+  min-width: 0; padding: 0;
+  border-radius: 50%;
+  font-size: 0;
+}
+.ttc-marker.style-dot .ttc-marker__tail { display: none; }
+.ttc-marker.style-dot.paid .ttc-marker__chip::after {
+  content: '✓';
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%; height: 100%;
+}
+
+/* ---------------------------- Popup ----------------------------- */
+
+.leaflet-popup-content-wrapper {
+  border-radius: var(--r-lg);
+  padding: 0;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-soft);
+}
+.leaflet-popup-tip { box-shadow: var(--shadow-lg); }
+.leaflet-popup-content { margin: 0; width: 280px !important; }
+.leaflet-popup-close-button {
+  font-size: 22px !important;
+  padding: 8px 10px 0 0 !important;
+  color: var(--text-muted) !important;
+  font-family: var(--font-body) !important;
+}
+
+.popup {
+  font-family: var(--font-body);
+  padding: 0;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--card);
+}
+.popup__top {
+  background: var(--tier-bg, var(--ttc-dark));
+  color: var(--tier-fg, #fff);
+  padding: 14px 16px 12px;
+}
+.popup.tier-4 { --tier-bg: var(--tier-4-bg); --tier-fg: var(--tier-4-fg); }
+.popup.tier-3 { --tier-bg: var(--tier-3-bg); --tier-fg: var(--tier-3-fg); }
+.popup.tier-2 { --tier-bg: var(--tier-2-bg); --tier-fg: var(--tier-2-fg); }
+.popup.tier-1 { --tier-bg: var(--tier-1-bg); --tier-fg: var(--tier-1-fg); }
+.popup.paid   { --tier-bg: var(--tier-paid-bg); --tier-fg: var(--tier-paid-fg); }
+
+.popup__top .eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.popup__top .amount {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+.popup.paid .popup__top .amount { text-decoration: line-through; }
+
+.popup__body { padding: 14px 16px; }
+.popup .name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin-bottom: 3px;
+  line-height: 1.2;
+}
+.popup .addr {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+.popup .addr .approx-tag {
+  display: inline-block;
+  background: var(--info-bg);
+  color: var(--info-text);
+  padding: 1px 6px;
+  border-radius: var(--r-sm);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-left: 4px;
+  vertical-align: 2px;
+}
+.popup .paid-banner {
+  font-size: 12px;
+  background: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  margin-bottom: 10px;
+  text-align: center;
+  font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.popup .existing-notes {
+  background: var(--warn-bg);
+  border-left: 3px solid var(--warn-border);
+  color: var(--warn-text);
+  font-size: 12px;
+  padding: 7px 10px;
+  margin-bottom: 10px;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+.popup .existing-notes .label {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  display: block;
+  margin-bottom: 2px;
+  opacity: 0.8;
+}
+
+.popup .actions { display: flex; flex-direction: column; gap: 6px; }
+.popup .actions .row { display: flex; gap: 6px; }
+.popup .actions .row > * { flex: 1; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  text-align: center;
+  text-decoration: none;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.12s var(--ease-out), border-color 0.12s var(--ease-out), color 0.12s var(--ease-out);
+  user-select: none;
+  min-height: 38px;
+}
+.btn:active { filter: brightness(0.94); }
+.btn svg { width: 14px; height: 14px; }
+.btn-primary { background: var(--ttc-orange); color: #fff; }
+.btn-primary:hover { background: var(--ttc-orange-dk); }
+.btn-secondary {
+  background: var(--card);
+  color: var(--ttc-dark);
+  border-color: var(--border);
+}
+.btn-secondary:hover { border-color: var(--ttc-dark); }
+.btn-success { background: var(--ttc-green); color: #fff; }
+.btn-success:hover { background: var(--ttc-green-dk); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border-soft);
+}
+.btn-ghost:hover { border-color: var(--ttc-dark); color: var(--ttc-dark); }
+.btn:disabled { opacity: 0.5; cursor: wait; }
+
+.popup .note-form { display: none; flex-direction: column; gap: 6px; margin-top: 6px; }
+.popup .note-form.open { display: flex; }
+.popup .note-form textarea {
+  width: 100%;
+  min-height: 70px;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--card);
+}
+.popup .note-form textarea:focus {
+  outline: none;
+  border-color: var(--ttc-green);
+  box-shadow: 0 0 0 3px rgba(74,103,65,0.15);
+}
+
+/* --------------------------- Overlays --------------------------- */
+
+#status {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--card);
+  padding: 12px 22px;
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-md);
+  font-size: 13px;
+  color: var(--text-muted);
+  z-index: 1000;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+#status.hidden { display: none; }
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--ttc-orange);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#toast {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  padding: 11px 18px;
+  border-radius: var(--r-md);
+  background: var(--ttc-dark);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  z-index: 4000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+  max-width: calc(100vw - 40px);
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+#toast.error { background: var(--danger-text); }
+#toast.success { background: var(--ttc-green); }
+
+/* Crew modal */
+#crew-modal {
+  position: fixed; inset: 0;
+  background: rgba(42,58,37,0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 5000;
+}
+#crew-modal.open { display: flex; }
+#crew-modal .card {
+  background: var(--card);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  max-width: 360px;
+  width: calc(100% - 32px);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-soft);
+}
+#crew-modal .eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ttc-green);
+  margin-bottom: 6px;
+}
+#crew-modal h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+  line-height: 1.2;
+}
+#crew-modal p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+#crew-modal input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+#crew-modal input:focus {
+  outline: none;
+  border-color: var(--ttc-green);
+  box-shadow: 0 0 0 3px rgba(74,103,65,0.15);
+}
+#crew-modal button {
+  width: 100%;
+  padding: 12px;
+  background: var(--ttc-orange);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-md);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+}
+#crew-modal button:hover { background: var(--ttc-orange-dk); }
+
+/* --------------------------- Tweaks panel ----------------------- */
+
+/* ---------------------------- Leaflet override ------------------ */
+.leaflet-control-attribution {
+  font-size: 10px !important;
+  background: rgba(249,246,242,0.85) !important;
+  color: var(--text-muted) !important;
+  border-radius: var(--r-sm) 0 0 0;
+}
+.leaflet-control-attribution a { color: var(--ttc-green) !important; }
+.leaflet-bar {
+  border-radius: var(--r-md) !important;
+  box-shadow: var(--shadow-md) !important;
+  border: 0 !important;
+  overflow: hidden;
+}
+.leaflet-bar a {
+  background: var(--card) !important;
+  color: var(--ttc-dark) !important;
+  border-bottom-color: var(--border-soft) !important;
+}
+.leaflet-bar a:hover { background: var(--bg-alt) !important; }
+
+/* ---------------------------- Mobile --------------------------- */
+@media (max-width: 520px) {
+  #brand .subtitle { display: none; }
+  #brand img { height: 32px; }
+  #summary .amount { font-size: 19px; }
+  #summary .label { font-size: 10px; }
+  #toolbar { padding: 6px 10px; gap: 6px; }
+  .view-toggle button { padding: 6px 8px; font-size: 11px; }
+  .view-toggle button .lbl { display: none; }
+  #search-wrap { max-width: 140px; min-width: 70px; }
+  .filter-chip .count { display: none; }
+  }
+
+/* ---------- My-location feature: floating buttons + pulsing dot ---------- */
+#location-fab {
+  position: absolute;
+  right: 14px;
+  bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 600;
+}
+#location-fab button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--border-soft);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, color 0.15s, transform 0.05s;
+}
+#location-fab button:hover { background: var(--ttc-dark); color: #fff; }
+#location-fab button:active { transform: scale(0.94); }
+#location-fab button.active {
+  background: #2872e8;
+  color: #fff;
+  border-color: #2872e8;
+}
+#location-fab button svg { width: 22px; height: 22px; }
+#location-fab .btn-share { display: none; }
+#location-fab.tracking .btn-share { display: flex; }
+
+/* User-location marker (pulsing blue dot) */
+.user-loc {
+  position: relative;
+  width: 22px; height: 22px;
+}
+.user-loc__dot {
+  position: absolute;
+  inset: 4px;
+  background: #2872e8;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(40, 114, 232, 0.45), 0 2px 6px rgba(0,0,0,0.3);
+  z-index: 2;
+}
+.user-loc__pulse {
+  position: absolute;
+  inset: 0;
+  background: rgba(40, 114, 232, 0.35);
+  border-radius: 50%;
+  animation: user-pulse 1.8s ease-out infinite;
+  z-index: 1;
+}
+@keyframes user-pulse {
+  0%   { transform: scale(0.7); opacity: 0.8; }
+  100% { transform: scale(2.6); opacity: 0;   }
+}
+</style>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+<header id="header">
+  <div id="brand">
+    <img src="logo.png" alt="Total Tree Care">
+    <div class="stack">
+      <span class="title">Debtor Map</span>
+      <span class="subtitle">Internal · Crew Only</span>
+    </div>
+  </div>
+  <span id="crew-tag" title="Tap to change">
+    <span class="dot"></span>
+    <span class="who empty" id="crew-name">Not signed in</span>
+  </span>
+  <div id="summary">
+    <span class="amount" id="sum-amount">$0</span>
+    <span class="label" id="sum-count">0 ACCOUNTS</span>
+  </div>
+</header>
+
+<nav id="toolbar">
+  <div class="view-toggle">
+    <button data-view="map" class="active" title="Map view">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+      <span class="lbl">Map</span>
+    </button>
+    <button data-view="list" title="List view">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+      <span class="lbl">List</span>
+    </button>
+  </div>
+
+  <div id="filters">
+    <div class="filter-chip active" data-pri="all">All <span class="count" data-count="all">0</span></div>
+    <div class="filter-chip" data-pri="4"><span class="dot" style="background:var(--tier-4-bg)"></span>$3k+ <span class="count" data-count="4">0</span></div>
+    <div class="filter-chip" data-pri="3"><span class="dot" style="background:var(--tier-3-bg)"></span>$1.5–3k <span class="count" data-count="3">0</span></div>
+    <div class="filter-chip" data-pri="2"><span class="dot" style="background:var(--tier-2-bg)"></span>$500–1.5k <span class="count" data-count="2">0</span></div>
+    <div class="filter-chip" data-pri="1"><span class="dot" style="background:var(--tier-1-bg)"></span>&lt;$500 <span class="count" data-count="1">0</span></div>
+  </div>
+
+  <div id="search-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    <input id="search" type="search" placeholder="Search…" autocomplete="off">
+  </div>
+</nav>
+
+<main id="stage">
+  <div id="map"></div>
+  <div id="list-view"></div>
+  <div id="status"><span class="spinner"></span> Loading debtors…</div>
+
+  <!-- My location: floating buttons (bottom-right of map) -->
+  <div id="location-fab">
+    <button class="btn-locate" onclick="window.toggleLocate()" title="Show / track my location" aria-label="Locate me">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <circle cx="12" cy="12" r="3" fill="currentColor"></circle>
+        <line x1="12" y1="2" x2="12" y2="5"></line>
+        <line x1="12" y1="19" x2="12" y2="22"></line>
+        <line x1="2" y1="12" x2="5" y2="12"></line>
+        <line x1="19" y1="12" x2="22" y2="12"></line>
+      </svg>
+    </button>
+    <button class="btn-share" onclick="window.shareMyLocation()" title="Share my location" aria-label="Share my location">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"></circle>
+        <circle cx="6" cy="12" r="3"></circle>
+        <circle cx="18" cy="19" r="3"></circle>
+        <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line>
+        <line x1="15.4" y1="6.5" x2="8.6" y2="10.5"></line>
+      </svg>
+    </button>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<div id="crew-modal">
+  <div class="card">
+    <div class="eyebrow">Sign in</div>
+    <h3>Who's running the route?</h3>
+    <p>So when you mark someone paid or send Joseph a note, he knows who did it. First name is plenty.</p>
+    <input id="crew-input" type="text" placeholder="e.g. David, Joe, Carter" autocomplete="off">
+    <button onclick="saveCrew()">Save and Open Map</button>
+  </div>
+</div>
+
+<script>
+/* =================================================================
+   CONFIG (Joseph: paste these in when the backend is live)
+   ================================================================= */
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQaSTYrrl5-ossRi88D8hjnJyec1DMErf1a5XIdQYqRc2SRxVjhR7flfpLj3np8kWGMJA_6iM8Y6lOb/pub?gid=0&single=true&output=csv';
+const SCRIPT_URL    = 'https://script.google.com/macros/s/AKfycbwCgJ3pslWj3rDg-7J_NeInQ6dmRpGAQ1OjpoHLy6WJujhUtPdRSoWiaaYRAITjGZ15yA/exec';
+const SECRET_TOKEN  = 'Bvp7rhkDac9BeEsUEhjt3ry54SInqfbO2Rd-h7c_Kho';
+const FALLBACK_CSV  = './data.csv';
+const REFRESH_MS    = 60_000;
+
+/* Tweak defaults — the host rewrites this on disk when changed. */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "markerStyle": "chip",
+  "mapTone": "standard",
+  "showPaid": true
+}/*EDITMODE-END*/;
+let tweaks = { ...TWEAK_DEFAULTS };
+
+/* =================================================================
+   Helpers
+   ================================================================= */
+function priorityTier(balance) {
+  if (balance > 3000) return 4;
+  if (balance > 1500) return 3;
+  if (balance > 500)  return 2;
+  return 1;
+}
+function shortCurrency(n) {
+  if (n >= 1000) return '$' + (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k';
+  return '$' + Math.round(n);
+}
+function fmtMoney(n) {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
+}
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let cur = [], buf = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i+1] === '"') { buf += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else buf += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { cur.push(buf); buf = ''; }
+      else if (c === '\n') { cur.push(buf); rows.push(cur); cur = []; buf = ''; }
+      else if (c === '\r') {}
+      else buf += c;
+    }
+  }
+  if (buf.length || cur.length) { cur.push(buf); rows.push(cur); }
+  const headers = rows.shift();
+  return rows.filter(r => r.length && r[0]).map(r =>
+    Object.fromEntries(headers.map((h, i) => [h.trim(), (r[i] ?? '').trim()]))
+  );
+}
+
+function getCrew() { return localStorage.getItem('ttc-crew') || ''; }
+function setCrew(name) { localStorage.setItem('ttc-crew', name); }
+window.saveCrew = function() {
+  const v = document.getElementById('crew-input').value.trim();
+  if (!v) return;
+  setCrew(v);
+  document.getElementById('crew-modal').classList.remove('open');
+  const tag = document.getElementById('crew-name');
+  tag.textContent = v;
+  tag.classList.remove('empty');
+};
+function promptCrew() {
+  document.getElementById('crew-input').value = getCrew();
+  document.getElementById('crew-modal').classList.add('open');
+  setTimeout(() => document.getElementById('crew-input').focus(), 50);
+}
+document.getElementById('crew-tag').addEventListener('click', promptCrew);
+
+let toastTimer = null;
+function toast(msg, kind) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.remove('error', 'success');
+  if (kind) el.classList.add(kind);
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+/* =================================================================
+   Map + tile layers
+   ================================================================= */
+const map = L.map('map', { zoomControl: true, attributionControl: true })
+            .setView([41.74, -111.83], 11);
+
+const tile = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OSM &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains: 'abcd', maxZoom: 19,
+}).addTo(map);
+
+/* =================================================================
+   Markers
+   ================================================================= */
+let allMarkers = [];
+let activeFilter = 'all';
+let searchTerm = '';
+
+function buildMarker(d) {
+  const balance = parseFloat(d.Balance) || 0;
+  const status  = (d.Status || '').toUpperCase();
+  const isPaid  = status === 'PAID-IN-PERSON' || status === 'PAID';
+  const tier    = priorityTier(balance);
+  const approx  = d.Approx === '1';
+  const tierCls = isPaid ? 'paid' : ('tier-' + tier);
+  const styleCls = 'style-' + tweaks.markerStyle;
+
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="ttc-marker ${tierCls} ${styleCls}${approx?' approx':''}">
+             <div class="ttc-marker__chip">${shortCurrency(balance)}</div>
+             <div class="ttc-marker__tail"></div>
+           </div>`,
+    iconSize: tweaks.markerStyle === 'dot' ? [22, 22] : [60, 32],
+    iconAnchor: tweaks.markerStyle === 'dot' ? [11, 11] : [30, 32],
+    popupAnchor: tweaks.markerStyle === 'dot' ? [0, -10] : [0, -28],
+  });
+
+  const marker = L.marker([+d.Lat, +d.Lng], { icon });
+
+  marker.bindPopup(() => renderPopup(d, balance, tier, isPaid, approx), {
+    maxWidth: 280, minWidth: 280, autoPan: true, autoPanPaddingTopLeft: [10, 70],
+  });
+
+  return { marker, data: d, tier, balance, isPaid, approx };
+}
+
+function renderPopup(d, balance, tier, isPaid, approx) {
+  const tierCls = isPaid ? 'paid' : ('tier-' + tier);
+  const directions = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.Address)}`;
+  const notesHtml = d.Notes
+    ? `<div class="existing-notes"><span class="label">Note on file</span>${escapeHtml(d.Notes)}</div>`
+    : '';
+  const paidBanner = isPaid
+    ? `<div class="paid-banner">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+         Paid in person
+       </div>`
+    : '';
+  const tierLabel = isPaid ? 'PAID' :
+    tier === 4 ? 'TIER 1 · OVER $3K' :
+    tier === 3 ? 'TIER 2 · $1.5–3K' :
+    tier === 2 ? 'TIER 3 · $500–1.5K' :
+                 'TIER 4 · UNDER $500';
+  const id = 'p_' + (d.JobberURL || d.Name).replace(/\W+/g, '_');
+
+  return `
+    <div class="popup ${tierCls}" data-jobber="${escapeHtml(d.JobberURL)}">
+      <div class="popup__top">
+        <div class="eyebrow">${tierLabel}</div>
+        <div class="amount">${fmtMoney(balance)}</div>
+      </div>
+      <div class="popup__body">
+        <div class="name">${escapeHtml(d.Name)}</div>
+        <div class="addr">${escapeHtml(d.Address)}${approx ? '<span class="approx-tag">Approx</span>' : ''}</div>
+        ${paidBanner}
+        ${notesHtml}
+        <div class="actions">
+          <a class="btn btn-primary" href="${directions}" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+            Get Directions
+          </a>
+          <div class="row">
+            <a class="btn btn-secondary" href="${escapeHtml(d.JobberURL)}" target="_blank" rel="noopener">Open in Jobber</a>
+            <a class="btn btn-secondary" href="tel:+14355550100">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              Call
+            </a>
+          </div>
+          ${isPaid ? '' : `<button class="btn btn-success" onclick="window.markPaid(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Mark Paid in Person
+          </button>`}
+          <button class="btn btn-ghost" onclick="window.toggleNote('${id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Send Note to Joseph
+          </button>
+          <div class="note-form" id="${id}_form">
+            <textarea id="${id}_text" placeholder="Knocked, not home / paying Friday / wants Joseph to call / etc." maxlength="2000"></textarea>
+            <div class="row" style="gap:6px">
+              <button class="btn btn-ghost" onclick="window.toggleNote('${id}')">Cancel</button>
+              <button class="btn btn-primary" onclick="window.sendNote('${id}', this)">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* =================================================================
+   Actions
+   ================================================================= */
+window.markPaid = async function(btn) {
+  const popup = btn.closest('.popup');
+  const jobberUrl = popup.dataset.jobber;
+  if (!getCrew()) { promptCrew(); return; }
+  if (!confirm('Mark this customer PAID IN PERSON and notify Joseph?')) return;
+
+  const entry = allMarkers.find(e => e.data.JobberURL === jobberUrl);
+  if (!entry) { toast('Internal error', 'error'); return; }
+
+  if (!SCRIPT_URL || SCRIPT_URL.startsWith('PASTE_')) {
+    // Demo mode — mark locally so the prototype still tells a story
+    entry.isPaid = true;
+    entry.data.Status = 'PAID-IN-PERSON';
+    entry.marker.closePopup();
+    rebuildMarker(entry);
+    applyFilter();
+    toast('✓ Marked paid (demo) — Joseph would be notified', 'success');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const body = new URLSearchParams({
+      token: SECRET_TOKEN, action: 'collected',
+      jobberUrl: entry.data.JobberURL, name: entry.data.Name,
+      balance: entry.data.Balance, crew: getCrew(),
+    });
+    const resp = await fetch(SCRIPT_URL, { method: 'POST', body });
+    const json = await resp.json();
+    if (!json.ok) throw new Error(json.error || 'unknown error');
+
+    entry.isPaid = true;
+    entry.data.Status = 'PAID-IN-PERSON';
+    entry.marker.closePopup();
+    rebuildMarker(entry);
+    applyFilter();
+    toast('✓ Marked paid — Joseph notified', 'success');
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    btn.disabled = false; btn.textContent = 'Mark Paid in Person';
+  }
+};
+
+window.toggleNote = function(id) {
+  document.getElementById(id + '_form').classList.toggle('open');
+  setTimeout(() => document.getElementById(id + '_text')?.focus(), 50);
+};
+
+window.sendNote = async function(id, btn) {
+  const popup = btn.closest('.popup');
+  const jobberUrl = popup.dataset.jobber;
+  const note = document.getElementById(id + '_text').value.trim();
+
+  if (!note) { toast('Type something first', 'error'); return; }
+  if (!getCrew()) { promptCrew(); return; }
+
+  const entry = allMarkers.find(e => e.data.JobberURL === jobberUrl);
+
+  if (!SCRIPT_URL || SCRIPT_URL.startsWith('PASTE_')) {
+    toast('✓ Note sent (demo) — Joseph would be notified', 'success');
+    document.getElementById(id + '_text').value = '';
+    document.getElementById(id + '_form').classList.remove('open');
+    entry?.marker.closePopup();
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const body = new URLSearchParams({
+      token: SECRET_TOKEN, action: 'note',
+      jobberUrl: entry?.data.JobberURL || jobberUrl,
+      name: entry?.data.Name || '(unknown)',
+      note, crew: getCrew(),
+    });
+    const resp = await fetch(SCRIPT_URL, { method: 'POST', body });
+    const json = await resp.json();
+    if (!json.ok) throw new Error(json.error || 'unknown error');
+    toast('✓ Note sent to Joseph', 'success');
+    document.getElementById(id + '_text').value = '';
+    document.getElementById(id + '_form').classList.remove('open');
+    entry?.marker.closePopup();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send';
+  }
+};
+
+function rebuildMarker(entry) {
+  if (map.hasLayer(entry.marker)) map.removeLayer(entry.marker);
+  const next = buildMarker(entry.data);
+  Object.assign(entry, next);
+}
+
+/* =================================================================
+   Filter + render
+   ================================================================= */
+function passesFilters(e) {
+  if (e.isPaid && !tweaks.showPaid) return false;
+  if (e.isPaid && activeFilter !== 'all') return false;
+  if (activeFilter !== 'all' && e.tier !== Number(activeFilter)) return false;
+  const term = searchTerm.toLowerCase().trim();
+  if (term && !(`${e.data.Name} ${e.data.Address}`.toLowerCase().includes(term))) return false;
+  return true;
+}
+
+function applyFilter() {
+  let visibleCount = 0;
+  let visibleTotal = 0;
+  const counts = { all: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+
+  for (const e of allMarkers) {
+    if (e.isPaid && !tweaks.showPaid) {
+      if (map.hasLayer(e.marker)) map.removeLayer(e.marker);
+      continue;
+    }
+    if (!e.isPaid) {
+      counts.all++;
+      counts[e.tier]++;
+    }
+    if (passesFilters(e)) {
+      if (!map.hasLayer(e.marker)) e.marker.addTo(map);
+      visibleCount++;
+      if (!e.isPaid) visibleTotal += e.balance;
+    } else {
+      if (map.hasLayer(e.marker)) map.removeLayer(e.marker);
+    }
+  }
+
+  document.getElementById('sum-amount').textContent =
+    visibleTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  document.getElementById('sum-count').textContent =
+    `${visibleCount} ACCOUNT${visibleCount === 1 ? '' : 'S'}`;
+
+  document.querySelectorAll('.filter-chip .count').forEach(el => {
+    el.textContent = counts[el.dataset.count] ?? 0;
+  });
+
+  renderList();
+}
+
+/* ---------- List view ---------- */
+function renderList() {
+  const list = document.getElementById('list-view');
+  if (!list.classList.contains('visible')) return;
+
+  const items = allMarkers
+    .filter(passesFilters)
+    .sort((a, b) => {
+      if (a.isPaid !== b.isPaid) return a.isPaid ? 1 : -1;
+      return b.balance - a.balance;
+    });
+
+  if (!items.length) {
+    list.innerHTML = `<div id="list-empty">
+      <div class="big">No accounts match</div>
+      <div>Try clearing the filter or search.</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = items.map(e => {
+    const d = e.data;
+    const tierCls = e.isPaid ? 'paid' : 'tier-' + e.tier;
+    const tierStyle = `background: var(--${e.isPaid ? 'tier-paid' : 'tier-' + e.tier}-bg);
+                       color: var(--${e.isPaid ? 'tier-paid' : 'tier-' + e.tier}-fg);`;
+    const tierLabel = e.isPaid ? 'Paid' :
+      e.tier === 4 ? '$3K+' : e.tier === 3 ? '$1.5–3K' :
+      e.tier === 2 ? '$500–1.5K' : '<$500';
+    return `
+      <div class="list-card ${e.isPaid ? 'paid' : ''}" data-jobber="${escapeHtml(d.JobberURL)}">
+        <div class="tier-badge" style="${tierStyle}">
+          <div class="big">${shortCurrency(e.balance)}</div>
+          <div class="small">${tierLabel}</div>
+        </div>
+        <div class="body">
+          <div class="name">${escapeHtml(d.Name)}</div>
+          <div class="addr">${escapeHtml(d.Address)}</div>
+          <div class="meta">
+            ${e.isPaid ? '<span class="pill paid-pill">✓ Paid in person</span>' : ''}
+            ${e.approx ? '<span class="pill approx">Approx</span>' : ''}
+            ${d.Notes ? '<span class="pill note">Has note</span>' : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('.list-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const url = el.dataset.jobber;
+      const entry = allMarkers.find(e => e.data.JobberURL === url);
+      if (!entry) return;
+      switchView('map');
+      map.setView(entry.marker.getLatLng(), 15, { animate: true });
+      setTimeout(() => entry.marker.openPopup(), 350);
+    });
+  });
+}
+
+/* ---------- View switching ---------- */
+function switchView(v) {
+  document.querySelectorAll('.view-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === v);
+  });
+  document.getElementById('list-view').classList.toggle('visible', v === 'list');
+  if (v === 'list') {
+    map.closePopup();
+    renderList();
+  } else {
+    setTimeout(() => map.invalidateSize(), 30);
+  }
+}
+
+document.querySelectorAll('.view-toggle button').forEach(b => {
+  b.addEventListener('click', () => switchView(b.dataset.view));
+});
+
+/* ---------- Filter chips ---------- */
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeFilter = chip.dataset.pri;
+    applyFilter();
+  });
+});
+document.getElementById('search').addEventListener('input', e => {
+  searchTerm = e.target.value;
+  applyFilter();
+});
+
+/* =================================================================
+   My location — show, track, share
+   ================================================================= */
+let userMarker = null;
+let userAccuracyCircle = null;
+let watchId = null;
+
+function buildUserIcon() {
+  return L.divIcon({
+    className: '',
+    html: '<div class="user-loc"><div class="user-loc__pulse"></div><div class="user-loc__dot"></div></div>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+}
+
+function updateUserPosition(pos, { recenter = false } = {}) {
+  const { latitude, longitude, accuracy } = pos.coords;
+  const latlng = [latitude, longitude];
+  if (!userMarker) {
+    userMarker = L.marker(latlng, { icon: buildUserIcon(), zIndexOffset: 1000, interactive: false }).addTo(map);
+    userAccuracyCircle = L.circle(latlng, {
+      radius: accuracy,
+      color: '#2872e8', weight: 1, opacity: 0.4,
+      fillColor: '#2872e8', fillOpacity: 0.08, interactive: false,
+    }).addTo(map);
+  } else {
+    userMarker.setLatLng(latlng);
+    userAccuracyCircle.setLatLng(latlng).setRadius(accuracy);
+  }
+  if (recenter) map.setView(latlng, Math.max(map.getZoom(), 14));
+}
+
+window.toggleLocate = function() {
+  const fab = document.getElementById('location-fab');
+  const btn = fab.querySelector('.btn-locate');
+  if (watchId !== null) {
+    // Stop tracking
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+    if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+    if (userAccuracyCircle) { map.removeLayer(userAccuracyCircle); userAccuracyCircle = null; }
+    fab.classList.remove('tracking');
+    btn.classList.remove('active');
+    return;
+  }
+  if (!('geolocation' in navigator)) {
+    toast('Your browser does not support location', true);
+    return;
+  }
+  btn.classList.add('active');
+  // First fix: recenter map
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      updateUserPosition(pos, { recenter: true });
+      fab.classList.add('tracking');
+    },
+    err => {
+      btn.classList.remove('active');
+      const msgs = {
+        1: 'Location permission denied. Allow in browser settings.',
+        2: 'Could not get location (no signal).',
+        3: 'Location timed out. Try again.',
+      };
+      toast(msgs[err.code] || ('Location error: ' + err.message), true);
+    },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+  );
+  // Then keep watching so the dot follows the user
+  watchId = navigator.geolocation.watchPosition(
+    pos => updateUserPosition(pos),
+    err => { /* silent on subsequent errors */ },
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 }
+  );
+};
+
+window.shareMyLocation = async function() {
+  if (!userMarker) {
+    toast('Tap the locate button first', true);
+    return;
+  }
+  const { lat, lng } = userMarker.getLatLng();
+  const url = `https://www.google.com/maps?q=${lat.toFixed(6)},${lng.toFixed(6)}`;
+  const text = `${getCrew() || 'Crew'} is here: ${url}`;
+  // Try native share sheet (iOS / Android Chrome)
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'My location', text, url });
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return; // user cancelled, no-op
+    }
+  }
+  // Fallback: copy to clipboard
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Location copied — paste into iMessage / Slack');
+  } catch {
+    prompt('Copy this and send:', text);
+  }
+};
+
+/* =================================================================
+   Load data
+   ================================================================= */
+async function loadData() {
+  const isRemote = SHEET_CSV_URL && !SHEET_CSV_URL.startsWith('PASTE_');
+  const url = isRemote ? SHEET_CSV_URL : (FALLBACK_CSV);
+  const fetchUrl = isRemote ? (url + (url.includes('?') ? '&' : '?') + 't=' + Date.now()) : url;
+  try {
+    const resp = await fetch(fetchUrl, { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+    const rows = parseCSV(text);
+
+    for (const e of allMarkers) if (map.hasLayer(e.marker)) map.removeLayer(e.marker);
+    allMarkers = [];
+
+    for (const d of rows) {
+      if (!d.Lat || !d.Lng) continue;
+      allMarkers.push(buildMarker(d));
+    }
+    applyFilter();
+
+    if (allMarkers.length && !window.__fitDone) {
+      window.__fitDone = true;
+      const group = L.featureGroup(allMarkers.filter(e => !e.isPaid).map(e => e.marker));
+      if (group.getLayers().length) map.fitBounds(group.getBounds().pad(0.15));
+    }
+
+    document.getElementById('status').classList.add('hidden');
+  } catch (err) {
+    console.error(err);
+    document.getElementById('status').innerHTML = 'Could not load data: ' + escapeHtml(err.message);
+  }
+}
+
+/* =================================================================
+   Boot
+   ================================================================= */
+if (!getCrew()) {
+  promptCrew();
+} else {
+  const tag = document.getElementById('crew-name');
+  tag.textContent = getCrew();
+  tag.classList.remove('empty');
+}
+
+loadData();
+setInterval(loadData, REFRESH_MS);
+</script>
+
+</body></html>
